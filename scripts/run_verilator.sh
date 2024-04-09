@@ -21,7 +21,7 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
 [ ! -z "$VERILATOR" ] || VERILATOR="verilator"
 
-bender script verilator -t synthesis -t synth_test > ./verilator.f
+../bender script verilator -t synthesis -t synth_test > ./verilator.f
 
 VERILATOR_FLAGS=()
 VERILATOR_FLAGS+=(-Wno-fatal)
