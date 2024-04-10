@@ -1,30 +1,9 @@
 #!/bin/bash
-# Copyright (c) 2014-2018 ETH Zurich, University of Bologna
-#
-# Copyright and related rights are licensed under the Solderpad Hardware
-# License, Version 0.51 (the "License"); you may not use this file except in
-# compliance with the License.  You may obtain a copy of the License at
-# http://solderpad.org/licenses/SHL-0.51. Unless required by applicable law
-# or agreed to in writing, software, hardware and materials distributed under
-# this License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-# CONDITIONS OF ANY KIND, either express or implied. See the License for the
-# specific language governing permissions and limitations under the License.
-#
-# Authors:
-# - Andreas Kurth <akurth@iis.ee.ethz.ch>
-# - Fabian Schuiki <fschuiki@iis.ee.ethz.ch>
-# - Wolfgang Roenninger <wroennin@iis.ee.ethz.ch>
-
 set -euo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-
 if test -z ${VSIM+x}; then
     VSIM=vsim
 fi
-
-# Seed values for `sv_seed`; can be extended with specific values on a per-TB basis, as well as with
-# a random number by passing the `--random` flag.  The default value, 0, is always included to stay
-# regression-consistent.
 SEEDS=(0)
 
 call_vsim() {
@@ -50,33 +29,22 @@ exec_test() {
             ;;
         axi_dw_downsizer)
             for AxiSlvPortDataWidth in 8 16 32 64 128 256 512 1024; do
-                for (( AxiMstPortDataWidth = 8; \
-                        AxiMstPortDataWidth < $AxiSlvPortDataWidth; \
-                        AxiMstPortDataWidth *= 2 )); \
-                do
-                    call_vsim tb_axi_dw_downsizer \
-                            -gTbAxiSlvPortDataWidth=$AxiSlvPortDataWidth \
-                            -gTbAxiMstPortDataWidth=$AxiMstPortDataWidth -t 1ps
+                for (( AxiMstPortDataWidth = 8; AxiMstPortDataWidth < $AxiSlvPortDataWidth; AxiMstPortDataWidth *= 2 )); do
+                    call_vsim tb_axi_dw_downsizer -gTbAxiSlvPortDataWidth=$AxiSlvPortDataWidth -gTbAxiMstPortDataWidth=$AxiMstPortDataWidth -t 1ps
                 done
             done
             ;;
         axi_dw_upsizer)
             for AxiSlvPortDataWidth in 8 16 32 64 128 256 512 1024; do
-                for (( AxiMstPortDataWidth = $AxiSlvPortDataWidth*2; \
-                        AxiMstPortDataWidth <= 1024; \
-                        AxiMstPortDataWidth *= 2 )); \
-                do
-                    call_vsim tb_axi_dw_upsizer \
-                            -gTbAxiSlvPortDataWidth=$AxiSlvPortDataWidth \
-                            -gTbAxiMstPortDataWidth=$AxiMstPortDataWidth -t 1ps
+                for (( AxiMstPortDataWidth = $AxiSlvPortDataWidth*2; AxiMstPortDataWidth <= 1024; AxiMstPortDataWidth *= 2 )); do
+                    call_vsim tb_axi_dw_upsizer -gTbAxiSlvPortDataWidth=$AxiSlvPortDataWidth -gTbAxiMstPortDataWidth=$AxiMstPortDataWidth -t 1ps
                 done
             done
             ;;
         axi_fifo)
             for DEPTH in 0 1 16; do
                 for FALL_THROUGH in 0 1; do
-                    call_vsim tb_axi_fifo -gDepth=$DEPTH \
-                            -gFallThrough=$FALL_THROUGH
+                    call_vsim tb_axi_fifo -gDepth=$DEPTH -gFallThrough=$FALL_THROUGH
                 done
             done
             ;;
@@ -102,35 +70,13 @@ exec_test() {
                             for MAX_UNIQ_SLV_PORT_IDS in "${MAX_UNIQ_SLV_PORT_IDS_OPTS[@]}"; do
                                 MAX_MST_PORT_IDS=$((2**MST_PORT_IW))
                                 if [ $MAX_UNIQ_SLV_PORT_IDS -le $MAX_MST_PORT_IDS ]; then
-                                    call_vsim tb_axi_iw_converter \
-                                            -t 1ns -coverage -classdebug \
-                                            -voptargs="+acc +cover=bcesfx" \
-                                            -GTbEnExcl=$EXCL \
-                                            -GTbAxiSlvPortIdWidth=$SLV_PORT_IW \
-                                            -GTbAxiMstPortIdWidth=$MST_PORT_IW \
-                                            -GTbAxiSlvPortMaxUniqIds=$MAX_UNIQ_SLV_PORT_IDS \
-                                            -GTbAxiSlvPortMaxTxnsPerId=5
+                                    call_vsim tb_axi_iw_converter -t 1ns -coverage -classdebug -voptargs="+acc +cover=bcesfx" -GTbEnExcl=$EXCL -GTbAxiSlvPortIdWidth=$SLV_PORT_IW -GTbAxiMstPortIdWidth=$MST_PORT_IW -GTbAxiSlvPortMaxUniqIds=$MAX_UNIQ_SLV_PORT_IDS -GTbAxiSlvPortMaxTxnsPerId=5
                                 else
-                                    call_vsim tb_axi_iw_converter \
-                                            -t 1ns -coverage -classdebug \
-                                            -voptargs="+acc +cover=bcesfx" \
-                                            -GTbEnExcl=$EXCL \
-                                            -GTbAxiSlvPortIdWidth=$SLV_PORT_IW \
-                                            -GTbAxiMstPortIdWidth=$MST_PORT_IW \
-                                            -GTbAxiSlvPortMaxUniqIds=$MAX_UNIQ_SLV_PORT_IDS \
-                                            -GTbAxiSlvPortMaxTxns=31 \
-                                            -GTbAxiMstPortMaxUniqIds=$((2**MST_PORT_IW)) \
-                                            -GTbAxiMstPortMaxTxnsPerId=7
+                                    call_vsim tb_axi_iw_converter -t 1ns -coverage -classdebug -voptargs="+acc +cover=bcesfx" -GTbEnExcl=$EXCL -GTbAxiSlvPortIdWidth=$SLV_PORT_IW -GTbAxiMstPortIdWidth=$MST_PORT_IW -GTbAxiSlvPortMaxUniqIds=$MAX_UNIQ_SLV_PORT_IDS -GTbAxiSlvPortMaxTxns=31 -GTbAxiMstPortMaxUniqIds=$((2**MST_PORT_IW)) -GTbAxiMstPortMaxTxnsPerId=7
                                 fi
                             done
                         else
-                            call_vsim tb_axi_iw_converter \
-                                    -t 1ns -coverage -classdebug \
-                                    -voptargs="+acc +cover=bcesfx" \
-                                    -GTbEnExcl=$EXCL \
-                                    -GTbAxiSlvPortIdWidth=$SLV_PORT_IW \
-                                    -GTbAxiMstPortIdWidth=$MST_PORT_IW \
-                                    -GTbAxiSlvPortMaxTxnsPerId=3
+                            call_vsim tb_axi_iw_converter -t 1ns -coverage -classdebug -voptargs="+acc +cover=bcesfx" -GTbEnExcl=$EXCL -GTbAxiSlvPortIdWidth=$SLV_PORT_IW -GTbAxiMstPortIdWidth=$MST_PORT_IW -GTbAxiSlvPortMaxTxnsPerId=3
                         fi
                     done
                 done
@@ -141,8 +87,7 @@ exec_test() {
             for PRIV in 0 1; do
                 for SECU in 0 1; do
                     for BYTES in 42 200 369; do
-                        call_vsim tb_axi_lite_regs -gTbPrivProtOnly=$PRIV -gTbSecuProtOnly=$SECU \
-                                -gTbRegNumBytes=$BYTES -t 1ps
+                        call_vsim tb_axi_lite_regs -gTbPrivProtOnly=$PRIV -gTbSecuProtOnly=$SECU -gTbRegNumBytes=$BYTES -t 1ps
                     done
                 done
             done
@@ -150,8 +95,7 @@ exec_test() {
         axi_lite_to_apb)
             for PIPE_REQ in 0 1; do
                 for PIPE_RESP in 0 1; do
-                    call_vsim tb_axi_lite_to_apb -gTbPipelineRequest=$PIPE_REQ \
-                            -gTbPipelineResponse=$PIPE_RESP
+                    call_vsim tb_axi_lite_to_apb -gTbPipelineRequest=$PIPE_REQ -gTbPipelineResponse=$PIPE_RESP
                 done
             done
             ;;
@@ -173,9 +117,7 @@ exec_test() {
                     for Atop in 0 1; do
                         for Exclusive in 0 1; do
                             for UniqueIds in 0 1; do
-                                call_vsim tb_axi_xbar -gTbNumMasters=$NumMst -gTbNumSlaves=$NumSlv \
-                                        -gTbEnAtop=$Atop -gTbEnExcl=$Exclusive \
-                                        -gTbUniqueIds=$UniqueIds
+                                call_vsim tb_axi_xbar -gTbNumMasters=$NumMst -gTbNumSlaves=$NumSlv -gTbEnAtop=$Atop -gTbEnExcl=$Exclusive -gTbUniqueIds=$UniqueIds
                             done
                         done
                     done
@@ -189,15 +131,7 @@ exec_test() {
                         for AXI_DATA_WIDTH in 64 256 ; do
                             ACT_BANKS=$((2*$BANK_FACTOR*$NUM_BANKS))
                             MEM_DATA_WIDTH=$(($AXI_DATA_WIDTH/$NUM_BANKS))
-                            call_vsim tb_axi_to_mem_banked \
-                                -voptargs="+acc +cover=bcesfx" \
-                                -gTbAxiDataWidth=$AXI_DATA_WIDTH \
-                                -gTbNumWords=2048 \
-                                -gTbNumBanks=$ACT_BANKS \
-                                -gTbMemDataWidth=$MEM_DATA_WIDTH \
-                                -gTbMemLatency=$MEM_LAT \
-                                -gTbNumWrites=2000 \
-                                -gTbNumReads=2000
+                            call_vsim tb_axi_to_mem_banked -voptargs="+acc +cover=bcesfx" -gTbAxiDataWidth=$AXI_DATA_WIDTH -gTbNumWords=2048 -gTbNumBanks=$ACT_BANKS -gTbMemDataWidth=$MEM_DATA_WIDTH -gTbMemLatency=$MEM_LAT -gTbNumWrites=2000 -gTbNumReads=2000
                         done
                     done
                 done
@@ -211,14 +145,7 @@ exec_test() {
                             MST_ID=5
                             for DATA_WIDTH in 64 256; do
                                 for PIPE in 0 1; do
-                                    call_vsim tb_axi_xbar -t 1ns -voptargs="+acc" \
-                                        -gTbNumMasters=$NUM_MST       \
-                                        -gTbNumSlaves=$NUM_SLV        \
-                                        -gTbAxiIdWidthMasters=$MST_ID \
-                                        -gTbAxiIdUsed=$MST_ID_USE     \
-                                        -gTbAxiDataWidth=$DATA_WIDTH  \
-                                        -gTbPipeline=$PIPE            \
-                                        -gTbEnAtop=$GEN_ATOP
+                                    call_vsim tb_axi_xbar -t 1ns -voptargs="+acc" -gTbNumMasters=$NUM_MST -gTbNumSlaves=$NUM_SLV -gTbAxiIdWidthMasters=$MST_ID -gTbAxiIdUsed=$MST_ID_USE -gTbAxiDataWidth=$DATA_WIDTH -gTbPipeline=$PIPE -gTbEnAtop=$GEN_ATOP
                                 done
                             done
                         done
